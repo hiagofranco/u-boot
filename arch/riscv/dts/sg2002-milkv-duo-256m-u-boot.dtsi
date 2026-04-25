@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/*
+ * Copyright (c) 2026, Hiago De Franco <hfranco@baylibre.com>
+ */
+
+&uart0 {
+	bootph-pre-ram;
+	clock-frequency = <25000000>;
+};
