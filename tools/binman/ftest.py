@@ -6,6 +6,7 @@
 #
 #    python -m unittest func_test.TestFunctional.testHelp
 
+import binascii
 import collections
 import configparser
 import glob
@@ -5597,6 +5598,50 @@ fdt         fdtmap                Extract the devicetree blob from the fdtmap
             self._DoTestFile('vendor/renesas_rcar4_sa0_size.dts')
         self.assertIn("Node '/binman/renesas-rcar4-sa0': SRAM data longer than 966656 Bytes",
                       str(exc.exception))
+
+    def testSophgoCv18xxFip(self):
+        """Test that binman can produce a Sophgo CV18xx FIP image"""
+        def cksum(buf):
+            return struct.pack('<HH', binascii.crc_hqx(buf, 0), 0xcafe)
+
+        self._SetupSplElf()
+        data = self._DoReadFileRealDtb('vendor/sophgo_cv18xx_fip.dts')
+
+        # param1
+        self.assertEqual(b'CVBL01\n\0', data[:8])
+        self.assertEqual(cksum(data[0x10:0x800]), data[0xc:0x10])
+        self.assertEqual(tools.get_bytes(0xff, 36), data[0x90:0xb4])
+        self.assertEqual(struct.pack('<I', 8), data[0xbc:0xc0])
+        self.assertEqual(cksum(b''), data[0xc0:0xc4])
+        bl2 = data[0x1000:0x1200]
+        self.assertEqual(cksum(bl2), data[0xd4:0xd8])
+        self.assertEqual(struct.pack('<I', len(bl2)), data[0xd8:0xdc])
+        self.assertEqual(struct.pack('<II', 0xffffffa0, 0xffffffff),
+                         data[0xe8:0xf0])
+
+        # BL2: header, SPL and padding to 512 bytes
+        spl_end = 0x20 + len(U_BOOT_SPL_DATA)
+        self.assertEqual(struct.pack('<I', 0x0200006f) +
+                         tools.get_bytes(0, 28), bl2[:0x20])
+        self.assertEqual(U_BOOT_SPL_DATA, bl2[0x20:spl_end])
+        self.assertEqual(tools.get_bytes(0, 0x200 - spl_end), bl2[spl_end:])
+
+        fip = control.images['image'].GetEntries()['sophgo-cv18xx-fip']
+        self.assertEqual(0x1200, fip.size)
+        spl = fip.GetEntries()['u-boot-spl']
+        self.assertEqual(0x1020, spl.offset)
+        self.assertEqual(0x1020, spl.image_pos)
+
+        image_fname = tools.get_output_filename('image.bin')
+        self.assertEqual(U_BOOT_SPL_DATA,
+                         control.ReadEntry(image_fname,
+                                           'sophgo-cv18xx-fip/u-boot-spl'))
+
+    def testSophgoCv18xxFipCollection(self):
+        """Test using a Sophgo CV18xx FIP image in a collection"""
+        self._SetupSplElf()
+        data = self._DoReadFile('vendor/sophgo_cv18xx_fip_collection.dts')
+        self.assertEqual(data[:0x1200], data[0x1200:])
 
     def testFitFdtOper(self):
         """Check handling of a specified FIT operation"""
