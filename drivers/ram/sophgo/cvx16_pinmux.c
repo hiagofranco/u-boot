@@ -1,0 +1,98 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * Sophgo CV181x DDR PHY DQ/CA swap for each SiP DDR vendor
+ *
+ * Copyright (c) 2026, Hiago De Franco <hfranco@baylibre.com>
+ *
+ * Based on the Sophgo FSBL (https://github.com/sophgo/fsbl),
+ * plat/cv181x/ddr/cvx16_pinmux.c.
+ */
+
+#include "ddr_sys.h"
+
+struct ddr_pinmux {
+	u8 vendor;
+	u32 regs[12];
+};
+
+static const struct ddr_pinmux ddr_pinmux[] = {
+	{ DDR_VENDOR_NY_4G, {	/* DDR3_4G */
+		0x12141013, 0x0c041503, 0x06050001, 0x08070b02,
+		0x0a0f0e09, 0x0016110d, 0x00000000, 0x00000100,
+		0x02136574, 0x00000008, 0x76512308, 0x00000004,
+	} },
+	{ DDR_VENDOR_NY_2G, {	/* DDR3_2G */
+		0x08070d09, 0x0605020b, 0x14040100, 0x15030e0c,
+		0x0a0f1213, 0x00111016, 0x00000000, 0x00000100,
+		0x82135764, 0x00000000, 0x67513028, 0x00000004,
+	} },
+	{ DDR_VENDOR_ESMT_1G, {	/* DDR3_1G */
+		0x08070b09, 0x05000206, 0x0c04010d, 0x15030a14,
+		0x10111213, 0x000f160e, 0x00000000, 0x00000100,
+		0x31756024, 0x00000008, 0x26473518, 0x00000000,
+	} },
+	{ DDR_VENDOR_ESMT_2G, {	/* DDR3_2G */
+		0x080b0d06, 0x09010407, 0x1405020c, 0x15000e03,
+		0x0a0f1213, 0x00111016, 0x00000000, 0x00000100,
+		0x82135764, 0x00000000, 0x67513208, 0x00000004,
+	} },
+	{ DDR_VENDOR_ETRON_1G, {	/* ETRON_DDR3_1G */
+		0x0b060908, 0x02000107, 0x0c05040d, 0x13141503,
+		0x160a1112, 0x000f100e, 0x00000000, 0x00000100,
+		0x28137564, 0x00000000, 0x76158320, 0x00000004,
+	} },
+	{ DDR_VENDOR_ESMT_N25_1G, {	/* ESMT_N25_DDR3_1G */
+		0x08060b09, 0x02040701, 0x0c00050d, 0x13150314,
+		0x10111216, 0x000f0a0e, 0x00000000, 0x00000100,
+		0x82135674, 0x00000000, 0x76153280, 0x00000004,
+	} },
+	{ DDR_VENDOR_NY_N20_1G, {	/* NY_N20_DDR3_1G */
+		0x08060f0b, 0x07040109, 0x1405020c, 0x15030f00,
+		0x0a0f1213, 0x00111016, 0x00000000, 0x00000100,
+		0x82315764, 0x00000000, 0x67513208, 0x00000004,
+	} },
+	{ DDR_VENDOR_UNILC_N25_1G, {	/* UnilC_DDR3_1G */
+		0x08020b07, 0x00030905, 0x04010006, 0x1300150c,
+		0x16111214, 0x00000a10, 0x00000000, 0x00000100,
+		0x08137564, 0x00000002, 0x76513820, 0x00000004,
+	} },
+	{ DDR_VENDOR_UNILC_N21_2G, {	/* UnilC_DDR3_2G */
+		0x08070d09, 0x0605020b, 0x14040100, 0x1503000c,
+		0x0a120013, 0x00111016, 0x00000000, 0x00000100,
+		0x82135764, 0x00000000, 0x76513208, 0x00000004,
+	} },
+	{ DDR_VENDOR_ESMT_N21_2G, {	/* ESMT_N21_DDR3_2G */
+		0x08070d09, 0x0605020b, 0x14040100, 0x1503000c,
+		0x16001213, 0x0011100a, 0x00000000, 0x00000100,
+		0x82315746, 0x00000000, 0x67513208, 0x00000004,
+	} },
+	{ DDR_VENDOR_ESMT_N19_4G, {	/* ESMT_DDR3_4G_19nm */
+		0x09050d07, 0x00080e02, 0x0c060b01, 0x12031104,
+		0x15001310, 0x000a1614, 0x00000000, 0x00000100,
+		0x31756024, 0x00000008, 0x45172380, 0x00000006,
+	} },
+	{ DDR_EXTERN_DDR3, {	/* external ddr3 */
+		0x0d080212, 0x00040709, 0x0e0b1506, 0x030a0c05,
+		0x14101613, 0x000f1101, 0x00000000, 0x00000100,
+		0x38754062, 0x00000001, 0x62475103, 0x00000008,
+	} },
+};
+
+int cvx16_pinmux(u8 vendor)
+{
+	const struct ddr_pinmux *p;
+	int i;
+
+	for (p = ddr_pinmux; p < ddr_pinmux + ARRAY_SIZE(ddr_pinmux); p++) {
+		if (p->vendor != vendor)
+			continue;
+
+		for (i = 0; i < ARRAY_SIZE(p->regs); i++)
+			writel(p->regs[i], PHYD_BASE + i * 4);
+		return 0;
+	}
+
+	pr_err("DDR: no pinmux for vendor %x\n", vendor);
+
+	return -ENODEV;
+}
