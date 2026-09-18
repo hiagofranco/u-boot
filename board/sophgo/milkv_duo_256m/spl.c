@@ -2,7 +2,8 @@
 /*
  * Copyright (c) 2026, Hiago De Franco <hfranco@baylibre.com>
  *
- * PLL setup based on the Sophgo FSBL, plat/cv181x/platform.c.
+ * PLL and RTC setup based on the Sophgo FSBL (https://github.com/sophgo/fsbl),
+ * plat/cv181x/platform.c.
  */
 
 #include <asm/arch/rom_api.h>
@@ -48,7 +49,28 @@
  * divider factor from the register, [0] de-assert the divider reset.
  */
 #define CLK_DIV(div, src)		(((div) << 16) | ((src) << 8) | BIT(3) | BIT(0))
+
+#define RTC_BASE			0x05026000UL
+#define RTC_EN_SHDN_REQ			0x0c0
+#define RTC_EN_PWR_CYC_REQ		0x0c8
+#define RTC_EN_WARM_RST_REQ		0x0cc
+#define RTC_EN_PWR_VBAT_DET		0x0d0
+#define  RTC_EN_PWR_VBAT_DET_PWR_UP	BIT(2)
+#define RTC_EN_WDT_RST_REQ		0x0e0
+
+#define RTC_CTRL_BASE			0x05025000UL
+#define RTC_CTRL0_UNLOCKKEY		0x004
+#define  RTC_CTRL0_UNLOCKKEY_VAL	0xab18
+#define RTC_CTRL0			0x008
+#define  RTC_CTRL0_WRITE_MASK		GENMASK(31, 16)
+#define  RTC_CTRL0_HW_WDG_RST_EN	BIT(11)
+#define RTC_POR_RST_CTRL		0x0ac
+
+#define RTC_EN_REQ_TIMEOUT_US		100000
+
 #define clkgen_reg(off)			((void __iomem *)(CLKGEN_BASE + (off)))
+#define rtc_reg(off)			((void __iomem *)(RTC_BASE + (off)))
+#define rtc_ctrl_reg(off)		((void __iomem *)(RTC_CTRL_BASE + (off)))
 
 struct cv18xx_clk_div {
 	u16 off;
@@ -169,6 +191,35 @@ static void cv18xx_pll_init(void)
 	writel(0, clkgen_reg(CLK_BYP_1));
 }
 
+static void cv18xx_rtc_init(void)
+{
+	static const u16 en_reqs[] = {
+		RTC_EN_SHDN_REQ, RTC_EN_WARM_RST_REQ,
+		RTC_EN_PWR_CYC_REQ, RTC_EN_WDT_RST_REQ,
+	};
+	u32 val;
+	int i;
+
+	/* Let the RTC domain handle power off, reset and watchdog requests */
+	for (i = 0; i < ARRAY_SIZE(en_reqs); i++) {
+		writel(1, rtc_reg(en_reqs[i]));
+		if (readl_poll_timeout(rtc_reg(en_reqs[i]), val, val == 1,
+				       RTC_EN_REQ_TIMEOUT_US))
+			log_warning("RTC: failed to set register 0x%lx\n",
+				    RTC_BASE + en_reqs[i]);
+	}
+
+	writel(1, rtc_ctrl_reg(RTC_POR_RST_CTRL));
+
+	writel(RTC_CTRL0_UNLOCKKEY_VAL, rtc_ctrl_reg(RTC_CTRL0_UNLOCKKEY));
+	/* BIT(6) is set as in the vendor FSBL */
+	setbits_le32(rtc_ctrl_reg(RTC_CTRL0), RTC_CTRL0_WRITE_MASK |
+		     RTC_CTRL0_HW_WDG_RST_EN | BIT(6));
+
+	/* Do not power up again after a power off */
+	clrbits_le32(rtc_reg(RTC_EN_PWR_VBAT_DET), RTC_EN_PWR_VBAT_DET_PWR_UP);
+}
+
 void board_init_f(ulong dummy)
 {
 	struct udevice *dev;
@@ -186,6 +237,7 @@ void board_init_f(ulong dummy)
 		panic("Failed to probe CPU: %d\n", ret);
 
 	riscv_cpu_setup();
+	cv18xx_rtc_init();
 
 	/* DDR training runs from the XTAL, before the PLLs are enabled */
 	ret = uclass_get_device(UCLASS_RAM, 0, &dev);
