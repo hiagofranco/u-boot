@@ -1,0 +1,92 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/*
+ * Copyright (c) 2026, Hiago De Franco <hfranco@baylibre.com>
+ */
+
+#include <config.h>
+
+/ {
+	binman {
+		filename = "fip.bin";
+
+		sophgo-cv18xx-fip {
+			u-boot-spl {
+			};
+		};
+
+		fit {
+			offset = <0x40000>;
+			description = "OpenSBI and S-mode U-Boot";
+			#address-cells = <2>;
+			fit,fdt-list = "of-list";
+
+			images {
+				opensbi {
+					description = "OpenSBI fw_dynamic Firmware";
+					type = "firmware";
+					os = "opensbi";
+					arch = "riscv";
+					load = /bits/ 64 <CONFIG_SPL_OPENSBI_LOAD_ADDR>;
+					entry = /bits/ 64 <CONFIG_SPL_OPENSBI_LOAD_ADDR>;
+
+					opensbi {
+						filename = "fw_dynamic.bin";
+						missing-msg = "opensbi";
+					};
+				};
+
+				uboot {
+					description = "U-Boot";
+					type = "standalone";
+					firmware = "opensbi";
+					os = "U-boot";
+					arch = "riscv";
+					compression = "none";
+					load = /bits/ 64 <CONFIG_TEXT_BASE>;
+
+					u-boot-nodtb {
+					};
+				};
+
+				@fdt-SEQ {
+					fit,operation = "gen-fdt-nodes";
+					description = "NAME";
+					type = "flat_dt";
+					compression = "none";
+				};
+			};
+
+			configurations {
+				default = "@conf-DEFAULT-SEQ";
+
+				@conf-SEQ {
+					description = "NAME";
+					fdt = "fdt-SEQ";
+					firmware = "opensbi";
+					loadables = "uboot";
+				};
+			};
+		};
+	};
+};
+
+&{/soc} {
+	memory-controller@8000000 {
+		compatible = "sophgo,sg2002-ddr";
+		reg = <0x08000000 0x12000>;
+		bootph-pre-ram;
+	};
+};
+
+&cpus {
+	bootph-pre-ram;
+};
+
+&cpu0 {
+	bootph-pre-ram;
+};
+
+&uart0 {
+	bootph-pre-ram;
+	clock-frequency = <25000000>;
+};
