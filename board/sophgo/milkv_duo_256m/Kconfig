@@ -12,10 +12,8 @@ config SYS_CPU
 config SYS_CONFIG_NAME
 	default "milkv_duo_256m"
 
-# The vendor FIP tool prepends a 32-byte loader header to u-boot.bin and loads
-# the result at 0x80200000, so the U-Boot code runs 0x20 bytes above that.
 config TEXT_BASE
-	default 0x80200020
+	default 0x80200000
 
 config ENV_SIZE
 	default 0x20000
@@ -26,5 +24,10 @@ config ENV_SECT_SIZE
 config BOARD_SPECIFIC_OPTIONS
 	def_bool y
 	select SOPHGO_CV1800B
+	select BINMAN if SPL
+	select RAM if SPL
+	select SPL_LOAD_BLOCK if SPL
+	select SPL_RAM if SPL
+	select SPL_SOPHGO_CV18XX_DDR if SPL
 
 endif
