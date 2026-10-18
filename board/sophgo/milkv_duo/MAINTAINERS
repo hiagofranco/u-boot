@@ -1,8 +1,11 @@
 Milk-V Duo
 M:	Kongyang Liu <seashell11234455@gmail.com>
 S:	Maintained
-F:	board/sophgo/milkv_duo/
+F:	arch/riscv/cpu/cv1800b/spl.c
+F:	arch/riscv/dts/cv1800b-milkv-duo-u-boot.dtsi
+F:	arch/riscv/include/asm/arch-cv1800b/rom_api.h
 F:	board/sophgo/common/
+F:	board/sophgo/milkv_duo/
 F:	configs/milkv_duo_defconfig
 F:	doc/board/sophgo/milkv_duo.rst
 F:	drivers/ram/sophgo/

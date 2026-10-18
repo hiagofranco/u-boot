@@ -24,5 +24,10 @@ config ENV_SECT_SIZE
 config BOARD_SPECIFIC_OPTIONS
 	def_bool y
 	select SOPHGO_CV1800B
+	select BINMAN if SPL
+	select RAM if SPL
+	select SPL_LOAD_BLOCK if SPL
+	select SPL_RAM if SPL
+	select SPL_SOPHGO_CV180X_DDR if SPL
 
 endif

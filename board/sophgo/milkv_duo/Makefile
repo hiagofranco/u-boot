@@ -4,3 +4,4 @@
 
 obj-y += board.o
 obj-$(CONFIG_NET_LEGACY) += ../common/ethernet.o
+obj-$(CONFIG_XPL_BUILD) += spl.o
