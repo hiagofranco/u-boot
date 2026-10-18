@@ -33,4 +33,5 @@ obj-$(CONFIG_CADENCE_DDR_CTRL) += cadence/
 
 ifdef CONFIG_XPL_BUILD
 obj-$(CONFIG_SPL_THEAD_TH1520_DDR) += thead/
+obj-$(CONFIG_SPL_SOPHGO_CV180X_DDR) += sophgo/
 endif

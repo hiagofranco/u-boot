@@ -5,3 +5,4 @@ F:	board/sophgo/milkv_duo/
 F:	board/sophgo/common/
 F:	configs/milkv_duo_defconfig
 F:	doc/board/sophgo/milkv_duo.rst
+F:	drivers/ram/sophgo/
