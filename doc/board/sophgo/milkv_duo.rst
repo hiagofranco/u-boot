@@ -9,8 +9,11 @@ The CV1800B is a high-performance, low-power 1+1 64-bit RISC-V SoC from Sophgo.
 
 Mainline support
 ----------------
-The support for following drivers are already enabled:
+Support for the following drivers is already enabled:
+
 1. ns16550 UART Driver.
+2. Synopsys DesignWare MSHC Driver.
+3. Synopsys DesignWare Ethernet Controller.
 
 Building
 ~~~~~~~~
